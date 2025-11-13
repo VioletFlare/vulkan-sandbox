@@ -182,6 +182,7 @@ set(EXAMPLES
 	vertexattributes
 	viewportarray
 	vulkanscene
+	simplecube
 )
 
 buildExamples()
