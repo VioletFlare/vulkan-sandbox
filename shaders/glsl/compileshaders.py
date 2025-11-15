@@ -10,6 +10,7 @@ import sys
 parser = argparse.ArgumentParser(description='Compile all GLSL shaders')
 parser.add_argument('--glslang', type=str, help='path to glslangvalidator executable')
 parser.add_argument('--g', action='store_true', help='compile with debug symbols')
+parser.add_argument('--d', type=str, help='path to a single directory where the shaders are')
 args = parser.parse_args()
 
 def findGlslang():
@@ -33,8 +34,18 @@ def findGlslang():
 file_extensions = tuple([".vert", ".frag", ".comp", ".geom", ".tesc", ".tese", ".rgen", ".rchit", ".rmiss", ".mesh", ".task"])
 
 glslang_path = findGlslang()
-dir_path = os.path.dirname(os.path.realpath(__file__))
+
+dir_path = "",
+
+if args.d:
+    dir_path = os.path.realpath(os.path.join(os.getcwd(), args.d))
+else:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
 dir_path = dir_path.replace('\\', '/')
+
+print(dir_path)
+
 for root, dirs, files in os.walk(dir_path):
     for file in files:
         if file.endswith(file_extensions):
