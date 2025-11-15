@@ -1,19 +1,14 @@
 #version 450
 
-#ifdef GL_ES
-precision mediump float;
-#endif
+layout (set = 0, binding = 1) uniform sampler2D samplerColorMap;
 
-uniform vec2 u_resolution;
-uniform vec2 u_mouse;
-uniform float u_time;
+layout (location = 0) in vec3 inNormal;
+layout (location = 1) in vec3 inColor;
+layout (location = 2) in vec2 inUV;
 
-void main() {
-    vec2 st = gl_FragCoord.xy/u_resolution.xy;
-    st.x *= u_resolution.x/u_resolution.y;
+layout (location = 0) out vec4 outFragColor;
 
-    vec3 color = vec3(0.);
-    color = vec3(st.x,st.y,abs(sin(u_time)));
-
-    gl_FragColor = vec4(color,1.0);
+void main() 
+{
+	outFragColor = texture(samplerColorMap, inUV) * vec4(inColor, 1.0);
 }
