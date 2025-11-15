@@ -182,7 +182,7 @@ public:
 
 			// Update the descriptor set with the actual descriptors matching shader bindings set in the layout
 
-			std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};
+			std::array<VkWriteDescriptorSet, 1> writeDescriptorSets{};
 
 			/*
 				Binding 0: Object matrices Uniform buffer
@@ -193,20 +193,6 @@ public:
 			writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			writeDescriptorSets[0].pBufferInfo = &cube.uniformBuffers[i].descriptor;
 			writeDescriptorSets[0].descriptorCount = 1;
-
-			/*
-				Binding 1: Object texture
-
-				Duplicating this descriptor per frame isn't technically required, as images are static
-				This is only done to keep the sample as easy possible
-				Another option is to put image descriptors into a completely separate set
-			*/
-			writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			writeDescriptorSets[1].dstSet = cube.descriptorSets[i];
-			writeDescriptorSets[1].dstBinding = 1;
-			writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			// Images use a different descriptor structure, so we use pImageInfo instead of pBufferInfo
-			writeDescriptorSets[1].descriptorCount = 1;
 
 			// Execute the writes to update descriptors for this set
 			// Note that it's also possible to gather all writes and only run updates once, even for multiple sets
@@ -253,8 +239,8 @@ public:
 		pipelineCI.pStages = shaderStages.data();
 		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color});
 
-		shaderStages[0] = loadShader(getShadersPath() + "descriptorsets/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = loadShader(getShadersPath() + "descriptorsets/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "simplecube/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = loadShader(getShadersPath() + "simplecube/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
 
