@@ -1,40 +1,40 @@
 /*
-* Vulkan Example - Using descriptor sets for passing data to shader stages
-*
-* Relevant code parts are marked with [POI]
-*
-* Copyright (C) 2018-2025 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+ * Vulkan Example - Using descriptor sets for passing data to shader stages
+ *
+ * Relevant code parts are marked with [POI]
+ *
+ * Copyright (C) 2018-2025 by Sascha Willems - www.saschawillems.de
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
 
 #include "vulkanexamplebase.h"
 #include "VulkanglTFModel.h"
 
-
 class VulkanExample : public VulkanExampleBase
 {
 public:
-	bool animate = true;
-
-	struct Cube {
-		struct Matrices {
+	struct Cube
+	{
+		struct Matrices
+		{
 			glm::mat4 projection;
 			glm::mat4 view;
 			glm::mat4 model;
 		} matrices;
-		vks::Texture2D texture;
+
 		std::array<vks::Buffer, maxConcurrentFrames> uniformBuffers{};
 		std::array<VkDescriptorSet, maxConcurrentFrames> descriptorSets{};
-		glm::vec3 rotation{ 0.0f };
+		glm::vec3 rotation{0.0f};
 	};
-	std::array<Cube, 2> cubes;
+
+	Cube cube;
 
 	vkglTF::Model model;
 
-	VkPipeline pipeline{ VK_NULL_HANDLE };
-	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
-	VkDescriptorSetLayout descriptorSetLayout{ VK_NULL_HANDLE };
+	VkPipeline pipeline{VK_NULL_HANDLE};
+	VkPipelineLayout pipelineLayout{VK_NULL_HANDLE};
+	VkDescriptorSetLayout descriptorSetLayout{VK_NULL_HANDLE};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -50,17 +50,17 @@ public:
 		vkDestroyPipeline(device, pipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-		for (auto& cube : cubes) {
-			cube.texture.destroy();
-			for (auto& buffer : cube.uniformBuffers) {
-				buffer.destroy();
-			}
+
+		for (auto &buffer : cube.uniformBuffers)
+		{
+			buffer.destroy();
 		}
 	}
 
 	virtual void getEnabledFeatures()
 	{
-		if (deviceFeatures.samplerAnisotropy) {
+		if (deviceFeatures.samplerAnisotropy)
+		{
 			enabledFeatures.samplerAnisotropy = VK_TRUE;
 		};
 	}
@@ -69,8 +69,6 @@ public:
 	{
 		const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 		model.loadFromFile(getAssetPath() + "models/cube.gltf", vulkanDevice, queue, glTFLoadingFlags);
-		cubes[0].texture.loadFromFile(getAssetPath() + "textures/crate01_color_height_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
-		cubes[1].texture.loadFromFile(getAssetPath() + "textures/crate02_color_height_rgba.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, queue);
 	}
 
 	/*
@@ -97,12 +95,12 @@ public:
 		// Uniform buffers : 1 per object and max. frame in flight
 		descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		// Uniform buffers are duplicated, so we can update buffer n+1 on the CPU while the GPU still reads from buffer n
-		descriptorPoolSizes[0].descriptorCount = static_cast<uint32_t>(cubes.size()) * maxConcurrentFrames;
+		descriptorPoolSizes[0].descriptorCount = static_cast<uint32_t>(sizeof(cube)) * maxConcurrentFrames;
 
 		// Combined image samples : 1 per object texture
 		descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		// Images are static, and never update after initial upload, but as they use the same descriptor set as buffers, we need to duplicate the descriptor count here too
-		descriptorPoolSizes[1].descriptorCount = static_cast<uint32_t>(cubes.size()) * maxConcurrentFrames;
+		descriptorPoolSizes[1].descriptorCount = static_cast<uint32_t>(sizeof(cube)) * maxConcurrentFrames;
 
 		// Create the global descriptor pool
 		VkDescriptorPoolCreateInfo descriptorPoolCI = {};
@@ -110,7 +108,7 @@ public:
 		descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
 		descriptorPoolCI.pPoolSizes = descriptorPoolSizes.data();
 		// Max. number of descriptor sets that can be allocated from this pool (one per object and per max. frame in flight)
-		descriptorPoolCI.maxSets = static_cast<uint32_t>(cubes.size() * maxConcurrentFrames);
+		descriptorPoolCI.maxSets = static_cast<uint32_t>(sizeof(cube) * maxConcurrentFrames);
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &descriptorPool));
 
@@ -170,56 +168,53 @@ public:
 
 		*/
 
-		for (auto &cube: cubes) {
-			// We have one uniform buffer per cube and max. fame in flight, so we also need one descriptor per that setup
-			for (auto i = 0; i < cube.uniformBuffers.size(); i++) {
+		// We have one uniform buffer per cube and max. fame in flight, so we also need one descriptor per that setup
+		for (auto i = 0; i < cube.uniformBuffers.size(); i++)
+		{
 
-				// Allocates an empty descriptor set without actual descriptors from the pool using the set layout
-				VkDescriptorSetAllocateInfo allocateInfo{};
-				allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-				allocateInfo.descriptorPool = descriptorPool;
-				allocateInfo.descriptorSetCount = 1;
-				allocateInfo.pSetLayouts = &descriptorSetLayout;
-				VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocateInfo, &cube.descriptorSets[i]));
+			// Allocates an empty descriptor set without actual descriptors from the pool using the set layout
+			VkDescriptorSetAllocateInfo allocateInfo{};
+			allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			allocateInfo.descriptorPool = descriptorPool;
+			allocateInfo.descriptorSetCount = 1;
+			allocateInfo.pSetLayouts = &descriptorSetLayout;
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocateInfo, &cube.descriptorSets[i]));
 
-				// Update the descriptor set with the actual descriptors matching shader bindings set in the layout
+			// Update the descriptor set with the actual descriptors matching shader bindings set in the layout
 
-				std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};
+			std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};
 
-				/*
-					Binding 0: Object matrices Uniform buffer
-				*/
-				writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				writeDescriptorSets[0].dstSet = cube.descriptorSets[i];
-				writeDescriptorSets[0].dstBinding = 0;
-				writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				writeDescriptorSets[0].pBufferInfo = &cube.uniformBuffers[i].descriptor;
-				writeDescriptorSets[0].descriptorCount = 1;
+			/*
+				Binding 0: Object matrices Uniform buffer
+			*/
+			writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			writeDescriptorSets[0].dstSet = cube.descriptorSets[i];
+			writeDescriptorSets[0].dstBinding = 0;
+			writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			writeDescriptorSets[0].pBufferInfo = &cube.uniformBuffers[i].descriptor;
+			writeDescriptorSets[0].descriptorCount = 1;
 
-				/*
-					Binding 1: Object texture
-					
-					Duplicating this descriptor per frame isn't technically required, as images are static
-					This is only done to keep the sample as easy possible
-					Another option is to put image descriptors into a completely separate set
-				*/
-				writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				writeDescriptorSets[1].dstSet = cube.descriptorSets[i];
-				writeDescriptorSets[1].dstBinding = 1;
-				writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				// Images use a different descriptor structure, so we use pImageInfo instead of pBufferInfo
-				writeDescriptorSets[1].pImageInfo = &cube.texture.descriptor;
-				writeDescriptorSets[1].descriptorCount = 1;
+			/*
+				Binding 1: Object texture
 
-				// Execute the writes to update descriptors for this set
-				// Note that it's also possible to gather all writes and only run updates once, even for multiple sets
-				// This is possible because each VkWriteDescriptorSet also contains the destination set to be updated
-				// For simplicity we will update once per set instead
+				Duplicating this descriptor per frame isn't technically required, as images are static
+				This is only done to keep the sample as easy possible
+				Another option is to put image descriptors into a completely separate set
+			*/
+			writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			writeDescriptorSets[1].dstSet = cube.descriptorSets[i];
+			writeDescriptorSets[1].dstBinding = 1;
+			writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			// Images use a different descriptor structure, so we use pImageInfo instead of pBufferInfo
+			writeDescriptorSets[1].descriptorCount = 1;
 
-				vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-			}
+			// Execute the writes to update descriptors for this set
+			// Note that it's also possible to gather all writes and only run updates once, even for multiple sets
+			// This is possible because each VkWriteDescriptorSet also contains the destination set to be updated
+			// For simplicity we will update once per set instead
+
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 		}
-
 	}
 
 	void preparePipelines()
@@ -234,7 +229,7 @@ public:
 		pipelineLayoutCI.pSetLayouts = &descriptorSetLayout;
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 
-		const std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		const std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
@@ -243,7 +238,7 @@ public:
 		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 		VkPipelineViewportStateCreateInfo viewportStateCI = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
 		VkPipelineMultisampleStateCreateInfo multisampleStateCI = vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
-		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()),0);
+		VkPipelineDynamicStateCreateInfo dynamicStateCI = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
@@ -256,9 +251,9 @@ public:
 		pipelineCI.pDynamicState = &dynamicStateCI;
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
-		pipelineCI.pVertexInputState  = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color});
+		pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV, vkglTF::VertexComponent::Color});
 
-	    shaderStages[0] = loadShader(getShadersPath() + "descriptorsets/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[0] = loadShader(getShadersPath() + "descriptorsets/cube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = loadShader(getShadersPath() + "descriptorsets/cube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipeline));
 	}
@@ -268,32 +263,28 @@ public:
 		// Each cube has one buffer per max. frame-in-flight
 		// This way we can update one buffer on the CPU while the other is being processed by the GPU
 		// Another option instead of using separate buffers could be using one large buffer with separate ranges per cube and fram
-		for (auto& cube : cubes) {
-			for (auto& buffer : cube.uniformBuffers) {
-				// Scene matrices uniform buffer
-				VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(Cube::Matrices)));
-				VK_CHECK_RESULT(buffer.map());
-			}
+		for (auto &buffer : cube.uniformBuffers)
+		{
+			// Scene matrices uniform buffer
+			VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(Cube::Matrices)));
+			VK_CHECK_RESULT(buffer.map());
 		}
 	}
 
 	void updateUniformBuffers()
 	{
-		cubes[0].matrices.model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f));
-		cubes[1].matrices.model = glm::translate(glm::mat4(1.0f), glm::vec3( 1.5f, 0.5f, 0.0f));
+		cube.matrices.model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f));
 
-		for (auto& cube : cubes) {
-			cube.matrices.projection = camera.matrices.perspective;
-			cube.matrices.view = camera.matrices.view;
-			cube.matrices.model = glm::rotate(cube.matrices.model, glm::radians(cube.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-			cube.matrices.model = glm::rotate(cube.matrices.model, glm::radians(cube.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-			cube.matrices.model = glm::rotate(cube.matrices.model, glm::radians(cube.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-			cube.matrices.model = glm::scale(cube.matrices.model, glm::vec3(0.25f));
-			/*
-				[POI] Update the uniform values seen by the GPU for the current frame
-			*/
-			memcpy(cube.uniformBuffers[currentBuffer].mapped, &cube.matrices, sizeof(cube.matrices));
-		}
+		cube.matrices.projection = camera.matrices.perspective;
+		cube.matrices.view = camera.matrices.view;
+		cube.matrices.model = glm::rotate(cube.matrices.model, glm::radians(cube.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		cube.matrices.model = glm::rotate(cube.matrices.model, glm::radians(cube.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		cube.matrices.model = glm::rotate(cube.matrices.model, glm::radians(cube.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		cube.matrices.model = glm::scale(cube.matrices.model, glm::vec3(0.25f));
+		/*
+			[POI] Update the uniform values seen by the GPU for the current frame
+		*/
+		memcpy(cube.uniformBuffers[currentBuffer].mapped, &cube.matrices, sizeof(cube.matrices));
 	}
 
 	void prepare()
@@ -309,12 +300,12 @@ public:
 	void buildCommandBuffer()
 	{
 		VkCommandBuffer cmdBuffer = drawCmdBuffers[currentBuffer];
-		
+
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
 		VkClearValue clearValues[2]{};
 		clearValues[0].color = defaultClearColor;
-		clearValues[1].depthStencil = { 1.0f, 0 };
+		clearValues[1].depthStencil = {1.0f, 0};
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
 		renderPassBeginInfo.renderPass = renderPass;
@@ -340,14 +331,9 @@ public:
 
 		model.bindBuffers(cmdBuffer);
 
-		/*
-			[POI] Render cubes with separate descriptor sets
-		*/
-		for (auto cube : cubes) {
-			// Bind the cube's descriptor set. This tells the command buffer to use the uniform buffer for the current frame and image set for this cube
-			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &cube.descriptorSets[currentBuffer], 0, nullptr);
-			model.draw(cmdBuffer);
-		}
+		// Bind the cube's descriptor set. This tells the command buffer to use the uniform buffer for the current frame and image set for this cube
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &cube.descriptorSets[currentBuffer], 0, nullptr);
+		model.draw(cmdBuffer);
 
 		drawUI(cmdBuffer);
 
@@ -360,25 +346,11 @@ public:
 	{
 		if (!prepared)
 			return;
-		if (animate && !paused) {
-			cubes[0].rotation.x += 2.5f * frameTimer;
-			if (cubes[0].rotation.x > 360.0f)
-				cubes[0].rotation.x -= 360.0f;
-			cubes[1].rotation.y += 2.0f * frameTimer;
-			if (cubes[1].rotation.y > 360.0f)
-				cubes[1].rotation.y -= 360.0f;
-		}
+
 		VulkanExampleBase::prepareFrame();
 		updateUniformBuffers();
 		buildCommandBuffer();
 		VulkanExampleBase::submitFrame();
-	}
-
-	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
-	{
-		if (overlay->header("Settings")) {
-			overlay->checkBox("Animate", &animate);
-		}
 	}
 };
 
